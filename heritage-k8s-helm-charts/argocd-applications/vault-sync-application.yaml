@@ -1,18 +1,16 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: heritage-redis
+  name: heritage-vault-sync
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "30"
+    argocd.argoproj.io/sync-wave: "20"
 spec:
   project: default
   source:
     repoURL: git@github.com:Zakharden/heritage-infra.git
     targetRevision: HEAD
-    path: heritage-k8s-helm-charts/redis
-    helm:
-      releaseName: heritage-redis
+    path: heritage-k8s-helm-charts/vault-sync
   destination:
     server: https://kubernetes.default.svc
     namespace: data

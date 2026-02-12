@@ -3,11 +3,13 @@ kind: Application
 metadata:
   name: heritage-postgres
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
 spec:
   project: default
   source:
     repoURL: git@github.com:Zakharden/heritage-infra.git
-    targetRevision: main
+    targetRevision: HEAD
     path: heritage-k8s-helm-charts/postgres
     helm:
       releaseName: heritage-postgres
