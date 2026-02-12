@@ -3,7 +3,8 @@ redis:
 
   auth:
     enabled: true
-    password: change-me-redis-password
+    existingSecret: heritage-redis-auth
+    existingSecretPasswordKey: redis-password
 
   master:
     resources:

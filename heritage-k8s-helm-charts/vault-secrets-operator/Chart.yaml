@@ -1,0 +1,10 @@
+apiVersion: v2
+name: heritage-vault-secrets-operator
+description: Wrapper chart for HashiCorp Vault Secrets Operator
+type: application
+version: 0.1.0
+appVersion: "1.2.0"
+dependencies:
+  - name: vault-secrets-operator
+    version: "1.2.x"
+    repository: "https://helm.releases.hashicorp.com"

@@ -1,0 +1,10 @@
+apiVersion: v2
+name: heritage-vault
+description: Wrapper chart for HashiCorp Vault
+type: application
+version: 0.1.0
+appVersion: "1.19.0"
+dependencies:
+  - name: vault
+    version: "0.30.x"
+    repository: "https://helm.releases.hashicorp.com"

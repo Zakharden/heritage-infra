@@ -4,9 +4,12 @@ postgresql:
   auth:
     enablePostgresUser: true
     username: app_user
-    password: change-me-postgres-password
     database: app_db
-    replicationPassword: change-me-replication-password
+    existingSecret: heritage-postgres-auth
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
+      replicationPasswordKey: replication-password
 
   primary:
     resources:

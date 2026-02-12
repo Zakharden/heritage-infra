@@ -71,6 +71,8 @@ Helm chart-репозиторий для stateful-сервисов, которы
 
 - PostgreSQL chart (2 инстанса: `primary + replica`, по 2Gi RAM и 2Gi PVC);
 - Redis chart (1 инстанс, standalone);
+- HashiCorp Vault chart;
+- Vault Secrets Operator + sync манифесты, чтобы пароли Postgres/Redis брались из Vault;
 - готовые Argo CD `Application` manifests:
   - `heritage-k8s-helm-charts/argocd-applications/postgres-application.yaml`
   - `heritage-k8s-helm-charts/argocd-applications/redis-application.yaml`

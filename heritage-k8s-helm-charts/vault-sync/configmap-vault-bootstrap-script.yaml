@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-bootstrap-script
+  namespace: data
+data:
+  bootstrap.sh: |
+    #!/bin/sh
+    set -euo pipefail
+
+    echo "Waiting for Vault API..."
+    until vault status >/dev/null 2>&1; do
+      sleep 2
+    done
+
+    vault login "${VAULT_TOKEN}" >/dev/null
+
+    vault secrets enable -path=kv kv-v2 || true
+    vault auth enable kubernetes || true
+
+    vault write auth/kubernetes/config \
+      kubernetes_host="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT_HTTPS}" \
+      kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+      token_reviewer_jwt="$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)"
+
+    cat <<'HCL' >/tmp/vso-read-policy.hcl
+    path "kv/data/heritage/*" {
+      capabilities = ["read"]
+    }
+    path "kv/metadata/heritage/*" {
+      capabilities = ["read", "list"]
+    }
+    HCL
+
+    vault policy write vso-read /tmp/vso-read-policy.hcl
+
+    vault write auth/kubernetes/role/vso-read \
+      bound_service_account_names="vso-auth" \
+      bound_service_account_namespaces="data" \
+      policies="vso-read" \
+      ttl="1h"
+
+    echo "Vault bootstrap completed (auth/policy/role configured)."
+    echo "Secrets are NOT created by this job. Add them manually in Vault:"
+    echo "  kv/heritage/postgres"
+    echo "  kv/heritage/redis"

@@ -9,7 +9,7 @@ spec:
   project: default
   source:
     repoURL: git@github.com:Zakharden/heritage-infra.git
-    targetRevision: HEAD
+    targetRevision: feat/helms-test
     path: heritage-k8s-helm-charts/redis
     helm:
       releaseName: heritage-redis
