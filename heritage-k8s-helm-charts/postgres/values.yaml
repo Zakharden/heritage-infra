@@ -1,0 +1,36 @@
+postgresql:
+  architecture: replication
+
+  auth:
+    enablePostgresUser: true
+    username: app_user
+    password: change-me-postgres-password
+    database: app_db
+    replicationPassword: change-me-replication-password
+
+  primary:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 2Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+    persistence:
+      enabled: true
+      storageClass: local-path
+      size: 2Gi
+
+  readReplicas:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 250m
+        memory: 2Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+    persistence:
+      enabled: true
+      storageClass: local-path
+      size: 2Gi
