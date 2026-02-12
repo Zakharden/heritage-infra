@@ -1,3 +1,11 @@
+global:
+  # Bitnami removed most semver tags from Docker Hub; the Bitnami Helm charts
+  # still reference semver tags like `17.6.0-debian-12-r4`.
+  #
+  # The same images are available on AWS Public ECR with those tags, so we use it
+  # as the default registry to avoid `ImagePullBackOff` / `not found`.
+  imageRegistry: public.ecr.aws
+
 postgresql:
   architecture: replication
 

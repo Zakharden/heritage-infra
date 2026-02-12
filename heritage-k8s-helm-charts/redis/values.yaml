@@ -1,3 +1,7 @@
+global:
+  # See `../postgres/values.yaml` for the rationale.
+  imageRegistry: public.ecr.aws
+
 redis:
   architecture: standalone
 
