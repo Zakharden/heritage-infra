@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: heritage-postgres
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:Zakharden/heritage-infra.git
+    targetRevision: main
+    path: heritage-k8s-helm-charts/postgres
+    helm:
+      releaseName: heritage-postgres
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

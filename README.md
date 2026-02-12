@@ -63,6 +63,21 @@
 
 ![heritage-kubespray-automatic UI](heritage-kubespray-automatic/docs/images/ui-screenshot.png)
 
+### 3. `heritage-k8s-helm-charts`
+
+Helm chart-репозиторий для stateful-сервисов, которые раскатываются через Argo CD Applications.
+
+Содержит:
+
+- PostgreSQL chart (2 инстанса: `primary + replica`, по 2Gi RAM и 2Gi PVC);
+- Redis chart (1 инстанс, standalone);
+- готовые Argo CD `Application` manifests:
+  - `heritage-k8s-helm-charts/argocd-applications/postgres-application.yaml`
+  - `heritage-k8s-helm-charts/argocd-applications/redis-application.yaml`
+
+Документация:
+- `heritage-k8s-helm-charts/README.md`
+
 ## Как это работает вместе
 
 Порядок работы:

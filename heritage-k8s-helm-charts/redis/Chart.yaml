@@ -1,0 +1,10 @@
+apiVersion: v2
+name: heritage-redis
+description: Wrapper chart for single-node Redis
+type: application
+version: 0.1.0
+appVersion: "7"
+dependencies:
+  - name: redis
+    version: "20.x.x"
+    repository: "https://charts.bitnami.com/bitnami"
