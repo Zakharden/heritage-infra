@@ -80,6 +80,39 @@ Helm chart-репозиторий для stateful-сервисов, которы
 Документация:
 - `heritage-k8s-helm-charts/README.md`
 
+Как раскатить Helm-чарты через Argo CD (app-of-apps):
+
+1. Убедитесь, что Argo CD установлен (в `heritage-kubespray-automatic` он ставится автоматически, если включить опцию Argo CD).
+2. Убедитесь, что Argo CD имеет доступ к git-репозиторию `heritage-infra` (репозиторий добавлен в Argo CD как `repoURL`).
+3. Создайте “root” Application, который будет синхронизировать каталог `heritage-k8s-helm-charts/argocd-applications` (он содержит дочерние `Application` для Vault, Vault Secrets Operator, Vault Sync, Postgres, Redis):
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: heritage-helm-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:Zakharden/heritage-infra.git
+    targetRevision: feat/helms-test  # замените на вашу ветку/тег
+    path: heritage-k8s-helm-charts/argocd-applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+Далее Argo CD сам создаст и будет поддерживать дочерние приложения.
+
+Важно:
+- После того как `heritage-vault*` приложения станут `Synced/Healthy`, пароли **нужно положить в Vault вручную**. Инструкция находится в `heritage-k8s-helm-charts/README.md`.
+- Wrapper-чарты вендорят зависимости Bitnami внутрь репозитория, чтобы Argo CD не зависел от доступа к Helm repo/index.
+
 ## Как это работает вместе
 
 Порядок работы:
@@ -87,6 +120,7 @@ Helm chart-репозиторий для stateful-сервисов, которы
 1. Подготавливаете VM через `ansible_host_settings`.
 2. Раскатываете Kubernetes через `heritage-kubespray-automatic`.
 3. Проверяете доступность кластера и addons (`kubectl get nodes`, `kubectl get storageclass`, `kubectl -n argocd get pods`).
+4. Раскатываете stateful-сервисы (PostgreSQL/Redis/Vault) через Argo CD из `heritage-k8s-helm-charts`.
 
 Идея проста:
 
@@ -120,6 +154,13 @@ kubectl get nodes -o wide
 kubectl get storageclass
 kubectl -n argocd get pods
 ```
+
+### Шаг 4. Раскатить PostgreSQL/Redis/Vault через Argo CD (Helm)
+
+См. `heritage-k8s-helm-charts/README.md`:
+- какие приложения создаются;
+- в каком порядке они синхронизируются;
+- как добавить секреты в Vault.
 
 ## Архитектурная роль репозитория
 
