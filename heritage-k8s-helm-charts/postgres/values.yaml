@@ -5,6 +5,10 @@ global:
   # The same images are available on AWS Public ECR with those tags, so we use it
   # as the default registry to avoid `ImagePullBackOff` / `not found`.
   imageRegistry: public.ecr.aws
+  security:
+    # Bitnami charts validate image registries; when using a mirror (ECR) we must
+    # explicitly allow it, otherwise Helm template fails at NOTES.txt.
+    allowInsecureImages: true
 
 postgresql:
   architecture: replication

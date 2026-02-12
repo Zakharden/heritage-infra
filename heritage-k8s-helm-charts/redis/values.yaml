@@ -1,6 +1,8 @@
 global:
   # See `../postgres/values.yaml` for the rationale.
   imageRegistry: public.ecr.aws
+  security:
+    allowInsecureImages: true
 
 redis:
   architecture: standalone

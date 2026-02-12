@@ -43,6 +43,7 @@ Helm chart-репозиторий для разворачивания stateful-�
 Поэтому в `postgres/values.yaml` и `redis/values.yaml` выставлен:
 
 - `global.imageRegistry: public.ecr.aws`
+- `global.security.allowInsecureImages: true` (требование новых Bitnami chart-проверок)
 
 В AWS Public ECR доступны те же Bitnami-образы с semver-тегами, и pull проходит стабильно.
 
@@ -50,6 +51,15 @@ Helm chart-репозиторий для разворачивания stateful-�
 
 - `postgres/values.yaml`
 - `redis/values.yaml`
+
+## Helm зависимости (важно для Argo CD)
+
+Wrapper-чарты `postgres/` и `redis/` зависят от Bitnami charts. Чтобы Argo CD не пытался
+качать `index.yaml` Helm-репозитория изнутри кластера (что часто ломается из-за прокси/ограничений),
+зависимости **вендорятся** в репозиторий:
+
+- `postgres/_vendor/postgresql` (postgresql chart `16.7.27`)
+- `redis/_vendor/redis` (redis chart `20.13.4`)
 
 ### Vault
 
