@@ -1,0 +1,84 @@
+---
+# Общие параметры
+timezone_name: "UTC"
+
+#Пакеты для установки
+common_packages:
+  - nano
+  - curl
+  - wget
+  - ca-certificates
+  - bash-completion
+  - chrony
+  - git
+  - tar
+  - unzip
+  - lsof
+  - bind-utils
+  - jq
+
+# Пользователь без root/sudo доступа
+viewer_user: "viewer"
+viewer_shell: "/bin/bash"
+viewer_create_home: true
+viewer_password_lock: true
+viewer_ssh_public_keys: []
+
+# Kubernetes / runtime
+k8s_repo_version: "v1.30"
+k8s_packages:
+  - kubelet
+  - kubeadm
+  - kubectl
+  - cri-tools
+
+k8s_runtime_packages:
+  - conntrack-tools
+  - socat
+  - iproute
+  - iptables
+  - device-mapper-persistent-data
+  - lvm2
+  - cloud-utils-growpart
+  - xfsprogs
+  - e2fsprogs
+
+k8s_kernel_modules:
+  - overlay
+  - br_netfilter
+
+k8s_sysctl:
+  net.bridge.bridge-nf-call-iptables: "1"
+  net.bridge.bridge-nf-call-ip6tables: "1"
+  net.ipv4.ip_forward: "1"
+  vm.max_map_count: "262144"
+  fs.inotify.max_user_instances: "8192"
+  fs.inotify.max_user_watches: "1048576"
+
+# Настройка kubelet под небольшие узлы (2 vCPU / 4 GB RAM)
+kubelet_extra_args: >-
+  --fail-swap-on=false
+  --container-runtime-endpoint=unix:///run/containerd/containerd.sock
+  --max-pods=80
+  --node-status-update-frequency=10s
+  --system-reserved=cpu=200m,memory=256Mi,ephemeral-storage=1Gi
+  --kube-reserved=cpu=200m,memory=256Mi,ephemeral-storage=1Gi
+
+k8s_set_selinux_permissive: true
+k8s_disable_swap: true
+
+# Дополнительные улучшения
+enable_rootfs_autogrow: true
+enable_firewalld_for_k8s: true
+
+k8s_common_ports:
+  - "10250/tcp"
+
+k8s_master_ports:
+  - "6443/tcp"
+  - "2379-2380/tcp"
+  - "10257/tcp"
+  - "10259/tcp"
+
+k8s_worker_ports:
+  - "30000-32767/tcp"

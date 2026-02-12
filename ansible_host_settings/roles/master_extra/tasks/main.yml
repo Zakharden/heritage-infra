@@ -1,0 +1,25 @@
+---
+- name: "Установить Python 3.11 на master"
+  ansible.builtin.dnf:
+    name: "{{ master_extra_packages }}"
+    state: present
+  tags:
+    - "master"
+    - "python311"
+    - "packages"
+
+- name: "Проверить установленную версию Python 3.11"
+  ansible.builtin.command: python3.11 --version
+  register: python311_version
+  changed_when: false
+  tags:
+    - "master"
+    - "python311"
+    - "checks"
+
+- name: "Вывести версию Python 3.11"
+  ansible.builtin.debug:
+    msg: "На {{ inventory_hostname }} установлен {{ python311_version.stdout }}"
+  tags:
+    - "master"
+    - "python311"

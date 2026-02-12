@@ -1,0 +1,373 @@
+---
+- name: "Отключить swap в текущей сессии"
+  ansible.builtin.command: swapoff -a
+  when:
+    - k8s_disable_swap | bool
+    - ansible_swaptotal_mb | int > 0
+  tags:
+    - "k8s"
+    - "system"
+    - "swap"
+
+- name: "Отключить swap в /etc/fstab"
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: "^([^#].*\\sswap\\s+.*)$"
+    replace: "# \\1"
+  when: k8s_disable_swap | bool
+  tags:
+    - "k8s"
+    - "system"
+    - "swap"
+
+- name: "Записать модули ядра для Kubernetes"
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    mode: "0644"
+    content: |
+      {% for module in k8s_kernel_modules %}
+      {{ module }}
+      {% endfor %}
+  tags:
+    - "k8s"
+    - "system"
+    - "network"
+
+- name: "Загрузить модули ядра"
+  ansible.builtin.command: "modprobe {{ item }}"
+  loop: "{{ k8s_kernel_modules }}"
+  changed_when: false
+  tags:
+    - "k8s"
+    - "system"
+    - "network"
+
+- name: "Записать sysctl-параметры для Kubernetes"
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-k8s.conf
+    mode: "0644"
+    content: |
+      {% for key, value in k8s_sysctl.items() %}
+      {{ key }} = {{ value }}
+      {% endfor %}
+  notify: "Применить sysctl"
+  tags:
+    - "k8s"
+    - "system"
+    - "network"
+
+- name: "Перевести SELinux в permissive (для совместимости с Kubernetes)"
+  ansible.builtin.command: setenforce 0
+  when:
+    - k8s_set_selinux_permissive | bool
+    - ansible_selinux is defined
+    - ansible_selinux.status == "enabled"
+    - ansible_selinux.mode != "permissive"
+  tags:
+    - "k8s"
+    - "system"
+    - "security"
+
+- name: "Сделать SELinux permissive после перезагрузки"
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: "^SELINUX="
+    line: "SELINUX=permissive"
+  when: k8s_set_selinux_permissive | bool
+  tags:
+    - "k8s"
+    - "system"
+    - "security"
+
+- name: "Определить доступный пакет containerd"
+  ansible.builtin.shell: |
+    if dnf -q list --available containerd >/dev/null 2>&1; then
+      echo containerd
+    elif dnf -q list --available containerd.io >/dev/null 2>&1; then
+      echo containerd.io
+    else
+      echo none
+    fi
+  args:
+    executable: /bin/bash
+  register: containerd_pkg_name
+  changed_when: false
+  tags:
+    - "k8s"
+    - "containers"
+    - "packages"
+
+- name: "Проверить, что containerd найден в репозитории"
+  ansible.builtin.assert:
+    that:
+      - containerd_pkg_name.stdout != "none"
+    fail_msg: "Не найден пакет containerd/containerd.io. Проверьте доступные репозитории RHEL."
+  tags:
+    - "k8s"
+    - "containers"
+    - "checks"
+
+- name: "Установить пакеты runtime и системные утилиты"
+  ansible.builtin.dnf:
+    name: "{{ k8s_runtime_packages + [containerd_pkg_name.stdout] }}"
+    state: present
+  tags:
+    - "k8s"
+    - "containers"
+    - "packages"
+
+- name: "Создать каталог конфигурации containerd"
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: "0755"
+  tags:
+    - "k8s"
+    - "containers"
+
+- name: "Проверить наличие /etc/containerd/config.toml"
+  ansible.builtin.stat:
+    path: /etc/containerd/config.toml
+  register: containerd_config_file
+  tags:
+    - "k8s"
+    - "containers"
+
+- name: "Сгенерировать дефолтный config.toml для containerd"
+  ansible.builtin.command: containerd config default
+  register: containerd_default_config
+  changed_when: false
+  when: not containerd_config_file.stat.exists
+  tags:
+    - "k8s"
+    - "containers"
+
+- name: "Сохранить дефолтный config.toml containerd"
+  ansible.builtin.copy:
+    dest: /etc/containerd/config.toml
+    mode: "0644"
+    content: "{{ containerd_default_config.stdout }}"
+  when: not containerd_config_file.stat.exists
+  notify: "Перезапустить containerd"
+  tags:
+    - "k8s"
+    - "containers"
+
+- name: "Включить SystemdCgroup в containerd"
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: "SystemdCgroup = false"
+    replace: "SystemdCgroup = true"
+  notify: "Перезапустить containerd"
+  tags:
+    - "k8s"
+    - "containers"
+
+- name: "Подключить официальный репозиторий Kubernetes"
+  ansible.builtin.copy:
+    dest: /etc/yum.repos.d/kubernetes.repo
+    mode: "0644"
+    content: |
+      [kubernetes]
+      name=Kubernetes
+      baseurl=https://pkgs.k8s.io/core:/stable:/{{ k8s_repo_version }}/rpm/
+      enabled=1
+      gpgcheck=1
+      repo_gpgcheck=1
+      gpgkey=https://pkgs.k8s.io/core:/stable:/{{ k8s_repo_version }}/rpm/repodata/repomd.xml.key
+  tags:
+    - "k8s"
+    - "packages"
+
+- name: "Установить kubelet/kubeadm/kubectl/cri-tools"
+  ansible.builtin.dnf:
+    name: "{{ k8s_packages }}"
+    state: present
+  tags:
+    - "k8s"
+    - "packages"
+
+- name: "Записать дополнительные параметры kubelet"
+  ansible.builtin.copy:
+    dest: /etc/sysconfig/kubelet
+    mode: "0644"
+    content: |
+      KUBELET_EXTRA_ARGS="{{ kubelet_extra_args }}"
+  notify: "Перезапустить kubelet"
+  tags:
+    - "k8s"
+    - "system"
+
+- name: "Создать конфигурацию crictl"
+  ansible.builtin.copy:
+    dest: /etc/crictl.yaml
+    mode: "0644"
+    content: |
+      runtime-endpoint: unix:///run/containerd/containerd.sock
+      image-endpoint: unix:///run/containerd/containerd.sock
+      timeout: 10
+      debug: false
+  tags:
+    - "k8s"
+    - "containers"
+
+- name: "Создать рабочие каталоги для k8s и runtime"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - /var/lib/kubelet
+    - /var/lib/containerd
+    - /var/log/kubernetes
+    - /opt/k8s/bin
+    - /data
+  tags:
+    - "k8s"
+    - "storage"
+
+- name: "Создать каталог конфигурации journald"
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    mode: "0755"
+  tags:
+    - "k8s"
+    - "storage"
+    - "system"
+
+- name: "Ограничить размер journald (под диск 40GB)"
+  ansible.builtin.copy:
+    dest: /etc/systemd/journald.conf.d/99-k8s.conf
+    mode: "0644"
+    content: |
+      [Journal]
+      SystemMaxUse=512M
+      RuntimeMaxUse=256M
+  notify: "Перезапустить journald"
+  tags:
+    - "k8s"
+    - "storage"
+    - "system"
+
+- name: "Авторасширить корневой раздел (если возможно)"
+  ansible.builtin.shell: |
+    set -euo pipefail
+    root_src="$(findmnt -n -o SOURCE /)"
+    root_fs="$(findmnt -n -o FSTYPE /)"
+    disk=""
+    part=""
+
+    if [[ "$root_src" =~ ^/dev/nvme[0-9]+n[0-9]+p([0-9]+)$ ]]; then
+      part="${BASH_REMATCH[1]}"
+      disk="${root_src%p$part}"
+    elif [[ "$root_src" =~ ^/dev/[a-z]+([0-9]+)$ ]]; then
+      part="${BASH_REMATCH[1]}"
+      disk="${root_src%$part}"
+    else
+      echo "skip: unsupported root device $root_src"
+      exit 0
+    fi
+
+    growpart "$disk" "$part" || true
+
+    if [[ "$root_fs" == "xfs" ]]; then
+      xfs_growfs /
+    elif [[ "$root_fs" == "ext4" || "$root_fs" == "ext3" ]]; then
+      resize2fs "$root_src"
+    else
+      echo "skip: unsupported filesystem $root_fs"
+    fi
+  args:
+    executable: /bin/bash
+  when: enable_rootfs_autogrow | bool
+  register: grow_root_result
+  failed_when: false
+  changed_when: false
+  tags:
+    - "k8s"
+    - "storage"
+
+- name: "Установить и запустить firewalld"
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+  when: enable_firewalld_for_k8s | bool
+  tags:
+    - "k8s"
+    - "security"
+    - "network"
+
+- name: "Включить firewalld"
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: true
+    state: started
+  when: enable_firewalld_for_k8s | bool
+  tags:
+    - "k8s"
+    - "security"
+    - "network"
+
+- name: "Открыть общие порты Kubernetes в firewalld"
+  ansible.builtin.command: "firewall-cmd --permanent --add-port={{ item }}"
+  loop: "{{ k8s_common_ports }}"
+  changed_when: false
+  when: enable_firewalld_for_k8s | bool
+  tags:
+    - "k8s"
+    - "security"
+    - "network"
+
+- name: "Открыть порты control-plane в firewalld"
+  ansible.builtin.command: "firewall-cmd --permanent --add-port={{ item }}"
+  loop: "{{ k8s_master_ports }}"
+  changed_when: false
+  when:
+    - enable_firewalld_for_k8s | bool
+    - inventory_hostname in groups['master']
+  tags:
+    - "k8s"
+    - "security"
+    - "network"
+
+- name: "Открыть порты worker в firewalld"
+  ansible.builtin.command: "firewall-cmd --permanent --add-port={{ item }}"
+  loop: "{{ k8s_worker_ports }}"
+  changed_when: false
+  when:
+    - enable_firewalld_for_k8s | bool
+    - inventory_hostname in groups['workers']
+  tags:
+    - "k8s"
+    - "security"
+    - "network"
+
+- name: "Перезагрузить правила firewalld"
+  ansible.builtin.command: firewall-cmd --reload
+  changed_when: false
+  when: enable_firewalld_for_k8s | bool
+  tags:
+    - "k8s"
+    - "security"
+    - "network"
+
+- name: "Включить и запустить containerd"
+  ansible.builtin.systemd:
+    name: containerd
+    enabled: true
+    state: started
+    daemon_reload: true
+  tags:
+    - "k8s"
+    - "containers"
+
+- name: "Включить kubelet (старт после kubeadm join/init)"
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true
+    state: started
+    daemon_reload: true
+  tags:
+    - "k8s"
+    - "system"
