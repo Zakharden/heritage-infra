@@ -101,11 +101,12 @@ Bootstrap job теперь не записывает пароли в Vault.
 перейдут в `Synced/Healthy`, необходимо добавить секреты в Vault вручную:
 
 ```bash
-# порт-форвард до Vault
-kubectl -n vault port-forward svc/heritage-vault 8200:8200
+# Вариант A (без установки vault-cli): выполнить команды внутри pod Vault
+# Root token по умолчанию (dev): `pass_heritage`
+kubectl -n vault exec -it heritage-vault-0 -- sh
 
 export VAULT_ADDR=http://127.0.0.1:8200
-export VAULT_TOKEN=<your-vault-root-token>
+export VAULT_TOKEN=pass_heritage
 
 # PostgreSQL секреты
 vault kv put kv/heritage/postgres \
@@ -116,6 +117,14 @@ vault kv put kv/heritage/postgres \
 # Redis секрет
 vault kv put kv/heritage/redis \
   redis-password='<redis-password>'
+
+exit
+
+# Вариант B: порт-форвард + vault-cli (если установлен на вашей машине)
+# kubectl -n vault port-forward svc/heritage-vault 8200:8200
+# export VAULT_ADDR=http://127.0.0.1:8200
+# export VAULT_TOKEN=pass_heritage
+# vault kv put ...
 ```
 
 После этого Vault Secrets Operator создаст/обновит K8s secrets:
