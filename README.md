@@ -96,7 +96,7 @@ spec:
   project: default
   source:
     repoURL: git@github.com:Zakharden/heritage-infra.git
-    targetRevision: feat/helms-test  # замените на вашу ветку/тег
+    targetRevision: HEAD  # default branch (после merge)
     path: heritage-k8s-helm-charts/argocd-applications
   destination:
     server: https://kubernetes.default.svc
@@ -112,6 +112,49 @@ spec:
 Важно:
 - После того как `heritage-vault*` приложения станут `Synced/Healthy`, пароли **нужно положить в Vault вручную**. Инструкция находится в `heritage-k8s-helm-charts/README.md`.
 - Wrapper-чарты вендорят зависимости Bitnami внутрь репозитория, чтобы Argo CD не зависел от доступа к Helm repo/index.
+
+### Внешний доступ (Ingress / TCP)
+
+В `heritage-k8s-helm-charts` есть отдельное Argo CD приложение:
+
+- `heritage-k8s-helm-charts/argocd-applications/external-access-application.yaml`
+
+Оно делает:
+
+- Ingress для Vault UI/API: `vault.52.20.233.48.nip.io` (хост можно поменять в `heritage-k8s-helm-charts/external-access/vault-ingress.yaml`)
+- TCP-прокси через `ingress-nginx` для:
+  - PostgreSQL (primary): `NodePort 31432` -> `data/heritage-postgres-postgresql-primary:5432`
+  - Redis: `NodePort 31379` -> `data/heritage-redis-master:6379`
+
+Подключение с другого сервера (нужен доступ по сети к любому узлу кластера и открытые порты в SG/firewalld):
+
+PostgreSQL:
+
+```bash
+psql -h <k8s_node_public_ip> -p 31432 -U app_user -d app_db
+```
+
+Redis:
+
+```bash
+redis-cli -h <k8s_node_public_ip> -p 31379 -a '<redis-password>'
+```
+
+Vault:
+
+- UI/API: `http://vault.52.20.233.48.nip.io`
+- логин: **token**
+- root token (dev): `pass_heritage` (см. `heritage-k8s-helm-charts/vault/values.yaml`)
+
+Где взять пароли:
+
+```bash
+# Postgres user password (app_user)
+kubectl -n data get secret heritage-postgres-auth -o jsonpath='{.data.password}' | base64 -d; echo
+
+# Redis password
+kubectl -n data get secret heritage-redis-auth -o jsonpath='{.data.redis-password}' | base64 -d; echo
+```
 
 ## Как это работает вместе
 

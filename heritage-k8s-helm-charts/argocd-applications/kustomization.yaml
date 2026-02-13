@@ -4,5 +4,6 @@ resources:
   - vault-application.yaml
   - vault-secrets-operator-application.yaml
   - vault-sync-application.yaml
+  - external-access-application.yaml
   - postgres-application.yaml
   - redis-application.yaml
