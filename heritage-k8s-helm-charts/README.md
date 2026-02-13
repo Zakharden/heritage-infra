@@ -33,29 +33,11 @@ Helm chart-репозиторий для разворачивания stateful-�
 - auth: включен
 - пароль берется из `existingSecret`, который синхронизируется из Vault
 
-## Важно про образы Bitnami (Docker Hub)
-
-На момент **12 февраля 2026** у `docker.io/bitnami/postgresql` и `docker.io/bitnami/redis`
-отсутствуют привычные semver-теги вида `17.6.0-debian-12-r4` / `7.4.3-debian-12-r0` (остались `latest` и digest-теги).
-При этом Bitnami Helm chart по умолчанию все еще может ссылаться на эти semver-теги,
-из-за чего на кластере появляется ошибка `ImagePullBackOff` / `not found`.
-
-Поэтому в `postgres/values.yaml` и `redis/values.yaml` выставлен:
-
-- `global.imageRegistry: public.ecr.aws`
-- `global.security.allowInsecureImages: true` (требование новых Bitnami chart-проверок)
-
-В AWS Public ECR доступны те же Bitnami-образы с semver-тегами, и pull проходит стабильно.
-
-Если вы хотите использовать другой registry/mirror, поменяйте `global.imageRegistry` в:
-
-- `postgres/values.yaml`
-- `redis/values.yaml`
 
 ## Helm зависимости (важно для Argo CD)
 
 Wrapper-чарты `postgres/` и `redis/` зависят от Bitnami charts. Чтобы Argo CD не пытался
-качать `index.yaml` Helm-репозитория изнутри кластера (что часто ломается из-за прокси/ограничений),
+качать `index.yaml` Helm-репозитория изнутри кластера,
 зависимости **вендорятся** в репозиторий:
 
 - `postgres/_vendor/postgresql` (postgresql chart `16.7.27`)
