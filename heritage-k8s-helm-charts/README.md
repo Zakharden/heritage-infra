@@ -103,7 +103,40 @@ Bootstrap job теперь не записывает пароли в Vault.
 - `0` - Vault
 - `10` - Vault Secrets Operator
 - `20` - Vault bootstrap/sync
+- `25` - внешний доступ (Vault Ingress + TCP для Postgres/Redis)
 - `30` - PostgreSQL и Redis
+
+## Внешний доступ (Ingress / TCP)
+
+### Vault (HTTP Ingress)
+
+В `external-access/vault-ingress.yaml` создается Ingress для Vault UI/API:
+
+- host: `vault.52.20.233.48.nip.io` (можно поменять под ваш домен)
+
+### PostgreSQL + Redis (TCP через ingress-nginx)
+
+Kubernetes Ingress ресурс предназначен для HTTP/HTTPS. Для PostgreSQL и Redis используется
+возможность `ingress-nginx` проксировать TCP через ConfigMap `tcp-services`.
+
+Манифест `external-access/ingress-nginx-tcp-services.yaml` делает:
+
+- `ingress-nginx/tcp-services`:
+  - `5432` -> `data/heritage-postgres-postgresql-primary:5432`
+  - `6379` -> `data/heritage-redis-master:6379`
+- `Service ingress-nginx/ingress-nginx-tcp` (NodePort):
+  - Postgres: `31432`
+  - Redis: `31379`
+
+Подключение с другого сервера:
+
+```bash
+# Postgres
+psql -h <k8s_node_public_ip> -p 31432 -U app_user -d app_db
+
+# Redis
+redis-cli -h <k8s_node_public_ip> -p 31379 -a '<redis-password>'
+```
 
 ## Что сделать вручную (обязательно)
 
