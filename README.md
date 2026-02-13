@@ -71,12 +71,90 @@ Helm chart-репозиторий для stateful-сервисов, которы
 
 - PostgreSQL chart (2 инстанса: `primary + replica`, по 2Gi RAM и 2Gi PVC);
 - Redis chart (1 инстанс, standalone);
+- HashiCorp Vault chart;
+- Vault Secrets Operator + sync манифесты, чтобы пароли Postgres/Redis брались из Vault;
 - готовые Argo CD `Application` manifests:
   - `heritage-k8s-helm-charts/argocd-applications/postgres-application.yaml`
   - `heritage-k8s-helm-charts/argocd-applications/redis-application.yaml`
 
 Документация:
 - `heritage-k8s-helm-charts/README.md`
+
+Как раскатить Helm-чарты через Argo CD (app-of-apps):
+
+1. Убедитесь, что Argo CD установлен (в `heritage-kubespray-automatic` он ставится автоматически, если включить опцию Argo CD).
+2. Убедитесь, что Argo CD имеет доступ к git-репозиторию `heritage-infra` (репозиторий добавлен в Argo CD как `repoURL`).
+3. Создайте “root” Application, который будет синхронизировать каталог `heritage-k8s-helm-charts/argocd-applications` (он содержит дочерние `Application` для Vault, Vault Secrets Operator, Vault Sync, Postgres, Redis):
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: heritage-helm-apps
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:Zakharden/heritage-infra.git
+    targetRevision: HEAD  # default branch (после merge)
+    path: heritage-k8s-helm-charts/argocd-applications
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+Далее Argo CD сам создаст и будет поддерживать дочерние приложения.
+
+Важно:
+- После того как `heritage-vault*` приложения станут `Synced/Healthy`, пароли **нужно положить в Vault вручную**. Инструкция находится в `heritage-k8s-helm-charts/README.md`.
+- Wrapper-чарты вендорят зависимости Bitnami внутрь репозитория, чтобы Argo CD не зависел от доступа к Helm repo/index.
+
+### Внешний доступ (Ingress / TCP)
+
+В `heritage-k8s-helm-charts` есть отдельное Argo CD приложение:
+
+- `heritage-k8s-helm-charts/argocd-applications/external-access-application.yaml`
+
+Оно делает:
+
+- Ingress для Vault UI/API: `vault.52.20.233.48.nip.io` (хост можно поменять в `heritage-k8s-helm-charts/external-access/vault-ingress.yaml`)
+- TCP-прокси через `ingress-nginx` для:
+  - PostgreSQL (primary): `NodePort 31432` -> `data/heritage-postgres-postgresql-primary:5432`
+  - Redis: `NodePort 31379` -> `data/heritage-redis-master:6379`
+
+Подключение с другого сервера (нужен доступ по сети к любому узлу кластера и открытые порты в SG/firewalld):
+
+PostgreSQL:
+
+```bash
+psql -h <k8s_node_public_ip> -p 31432 -U app_user -d app_db
+```
+
+Redis:
+
+```bash
+redis-cli -h <k8s_node_public_ip> -p 31379 -a '<redis-password>'
+```
+
+Vault:
+
+- UI/API: `http://vault.52.20.233.48.nip.io`
+- логин: **token**
+- root token (dev): `pass_heritage` (см. `heritage-k8s-helm-charts/vault/values.yaml`)
+
+Где взять пароли:
+
+```bash
+# Postgres user password (app_user)
+kubectl -n data get secret heritage-postgres-auth -o jsonpath='{.data.password}' | base64 -d; echo
+
+# Redis password
+kubectl -n data get secret heritage-redis-auth -o jsonpath='{.data.redis-password}' | base64 -d; echo
+```
 
 ## Как это работает вместе
 
@@ -85,6 +163,7 @@ Helm chart-репозиторий для stateful-сервисов, которы
 1. Подготавливаете VM через `ansible_host_settings`.
 2. Раскатываете Kubernetes через `heritage-kubespray-automatic`.
 3. Проверяете доступность кластера и addons (`kubectl get nodes`, `kubectl get storageclass`, `kubectl -n argocd get pods`).
+4. Раскатываете stateful-сервисы (PostgreSQL/Redis/Vault) через Argo CD из `heritage-k8s-helm-charts`.
 
 Идея проста:
 
@@ -118,6 +197,13 @@ kubectl get nodes -o wide
 kubectl get storageclass
 kubectl -n argocd get pods
 ```
+
+### Шаг 4. Раскатить PostgreSQL/Redis/Vault через Argo CD (Helm)
+
+См. `heritage-k8s-helm-charts/README.md`:
+- какие приложения создаются;
+- в каком порядке они синхронизируются;
+- как добавить секреты в Vault.
 
 ## Архитектурная роль репозитория
 

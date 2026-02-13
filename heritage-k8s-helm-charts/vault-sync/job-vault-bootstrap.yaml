@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-bootstrap
+  namespace: data
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 120
+  template:
+    spec:
+      serviceAccountName: vault-bootstrap
+      restartPolicy: OnFailure
+      containers:
+        - name: vault-bootstrap
+          image: hashicorp/vault:1.19.0
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "/scripts/bootstrap.sh"]
+          env:
+            - name: VAULT_ADDR
+              value: http://heritage-vault.vault.svc:8200
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vault-root-token
+                  key: token
+          volumeMounts:
+            - name: bootstrap-script
+              mountPath: /scripts
+      volumes:
+        - name: bootstrap-script
+          configMap:
+            name: vault-bootstrap-script
+            defaultMode: 0755

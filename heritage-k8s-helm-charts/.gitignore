@@ -1,1 +1,6 @@
+# Helm dependency output directories (we keep wrappers clean).
 **/charts/
+
+# Vendored charts include their own `charts/` (e.g. bitnami `common`) and must be committed.
+!**/_vendor/**/charts/
+!**/_vendor/**/charts/**

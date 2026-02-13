@@ -1,9 +1,16 @@
+global:
+  # See `../postgres/values.yaml` for the rationale.
+  imageRegistry: public.ecr.aws
+  security:
+    allowInsecureImages: true
+
 redis:
   architecture: standalone
 
   auth:
     enabled: true
-    password: change-me-redis-password
+    existingSecret: heritage-redis-auth
+    existingSecretPasswordKey: redis-password
 
   master:
     resources:
