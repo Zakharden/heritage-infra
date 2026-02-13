@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: heritage-vault
   namespace: argocd
+  labels:
+    app.kubernetes.io/instance: infra-apps
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
