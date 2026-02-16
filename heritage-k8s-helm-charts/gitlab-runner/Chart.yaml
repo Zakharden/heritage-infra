@@ -1,0 +1,12 @@
+apiVersion: v2
+appVersion: 18.8.0
+description: Wrapper chart for GitLab Runner
+version: 0.1.0
+maintainers:
+- email: zakhardenwp@gmail.com
+  name: Zakharden
+name: heritage-gitlab-runner
+dependencies:
+  - name: gitlab-runner
+    version: "0.85.0"
+    repository: "file://_vendor"

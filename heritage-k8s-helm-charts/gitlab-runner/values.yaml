@@ -1,0 +1,26 @@
+gitlab-runner:
+  gitlabUrl: https://gitlab.com/
+  runners:
+    secret: heritage-gitlab-runner-secret
+    config: |
+      [[runners]]
+        name = "heritage-k8s-runner"
+        url = "https://gitlab.com/"
+        executor = "kubernetes"
+        [runners.kubernetes]
+          namespace = "{{ default .Release.Namespace .Values.runners.jobNamespace }}"
+          image = "alpine:3.21"
+  rbac:
+    create: true
+  serviceAccount:
+    create: true
+  sessionServer:
+    enabled: false
+    serviceType: ClusterIP
+    # publicIP: runner-session.example.com
+    ingress:
+      enabled: false
+      className: "nginx"
+      annotations: {}
+      tls:
+        - secretName: gitlab-runner-session-server-tls

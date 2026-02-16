@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: heritage-gitlab-runner
+  namespace: argocd
+  labels:
+    app.kubernetes.io/instance: infra-apps
+  annotations:
+    argocd.argoproj.io/sync-wave: "25"
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:Zakharden/heritage-infra.git
+    targetRevision: HEAD
+    path: heritage-k8s-helm-charts/gitlab-runner
+    helm:
+      releaseName: heritage-gitlab-runner
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitlab-runner
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

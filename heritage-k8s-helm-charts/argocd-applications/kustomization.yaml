@@ -7,3 +7,4 @@ resources:
   - external-access-application.yaml
   - postgres-application.yaml
   - redis-application.yaml
+  - gitlab-runner-application.yaml
