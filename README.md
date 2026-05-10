@@ -1,5 +1,7 @@
 # heritage-infra
 
+English overview: [README_EN.md](README_EN.md)
+
 Инфраструктурный репозиторий для HSE start-up.  
 Содержит полный pipeline: от подготовки чистых VM до автоматической раскатки Kubernetes-кластера.
 
