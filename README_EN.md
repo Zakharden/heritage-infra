@@ -45,6 +45,8 @@ Key engineering principles used in this repository:
 - platform components should have documented ownership and purpose;
 - validation should be performed before applying changes to any real environment.
 
+For the full architecture map, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Safety Notes
 
 This repository must not contain:
@@ -75,11 +77,21 @@ Recommended validation before applying infrastructure changes:
 - document any manual prerequisites clearly before running automation;
 - test changes in a disposable or non-production environment first.
 
+For security assumptions, threat boundaries, and pre-deployment controls, see:
+
+- [SECURITY.md](SECURITY.md)
+- [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+
 ## Related Documentation
 
 The main README remains in Russian and contains the detailed current walkthrough:
 
 - [README.md](README.md)
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
+- [SECURITY.md](SECURITY.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
 - `ansible_host_settings/README.md`
 - `heritage-kubespray-automatic/README.md`
 - `heritage-kubespray-automatic/docs/OPERATIONS_GUIDE_RU.md`

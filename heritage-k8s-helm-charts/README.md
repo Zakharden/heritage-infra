@@ -127,11 +127,11 @@ redis-cli -h <k8s_node_public_ip> -p 31379 -a '<redis-password>'
 
 ```bash
 # Вариант A (без установки vault-cli): выполнить команды внутри pod Vault
-# Root token по умолчанию (dev): `pass_heritage`
+# Используйте lab root token из vault/values.yaml и замените его перед реальным использованием.
 kubectl -n vault exec -it heritage-vault-0 -- sh
 
 export VAULT_ADDR=http://127.0.0.1:8200
-export VAULT_TOKEN=pass_heritage
+export VAULT_TOKEN='<vault-dev-root-token>'
 
 # PostgreSQL секреты
 vault kv put kv/heritage/postgres \
@@ -148,7 +148,7 @@ exit
 # Вариант B: порт-форвард + vault-cli (если установлен на вашей машине)
 # kubectl -n vault port-forward svc/heritage-vault 8200:8200
 # export VAULT_ADDR=http://127.0.0.1:8200
-# export VAULT_TOKEN=pass_heritage
+# export VAULT_TOKEN='<vault-dev-root-token>'
 # vault kv put ...
 ```
 

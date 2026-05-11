@@ -2,6 +2,11 @@
 
 English overview: [README_EN.md](README_EN.md)
 
+Security and architecture notes:
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
+- [SECURITY.md](SECURITY.md)
+
 Инфраструктурный репозиторий для HSE start-up.  
 Содержит полный pipeline: от подготовки чистых VM до автоматической раскатки Kubernetes-кластера.
 
@@ -146,7 +151,7 @@ Vault:
 
 - UI/API: `http://vault.52.20.233.48.nip.io`
 - логин: **token**
-- root token (dev): `pass_heritage` (см. `heritage-k8s-helm-charts/vault/values.yaml`)
+- root token (dev): смотрите локальное lab-значение в `heritage-k8s-helm-charts/vault/values.yaml` и замените его перед любым реальным использованием.
 
 Где взять пароли:
 
