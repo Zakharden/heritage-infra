@@ -1,0 +1,21 @@
+vault:
+  global:
+    tlsDisable: true
+
+  server:
+    dev:
+      enabled: true
+      devRootToken: REPLACE_ME
+    standalone:
+      enabled: false
+    ha:
+      enabled: false
+
+  injector:
+    enabled: false
+
+  csi:
+    enabled: false
+
+  ui:
+    enabled: true

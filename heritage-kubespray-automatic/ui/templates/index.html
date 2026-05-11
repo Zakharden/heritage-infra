@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>heritage-kubespray-automatic UI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}" />
+  </head>
+  <body data-run-id="{{ run_id }}" data-cluster-name="{{ cluster_name }}">
+    <div class="bg-shape bg-shape-a"></div>
+    <div class="bg-shape bg-shape-b"></div>
+    <main class="layout">
+      <section class="hero reveal">
+        <p class="eyebrow">heritage-kubespray-automatic</p>
+        <h1>UI для раскатки Kubernetes кластера</h1>
+        <p class="lead">
+          Выберите простую конфигурацию, укажите хосты и нажмите
+          <strong>"Раскатить кластер"</strong>. UI создаст
+          <code>inventory/&lt;cluster_name&gt;</code> и запустит
+          <code>cluster-up.sh</code>.
+        </p>
+      </section>
+
+      {% if error %}
+      <section class="alert reveal">
+        <strong>Ошибка:</strong> {{ error }}
+      </section>
+      {% endif %}
+
+      <section class="grid">
+        <article class="card reveal">
+          <h2>Конфигурация</h2>
+          <form method="post" action="/deploy" id="deploy-form">
+            <div class="form-grid">
+              <label>
+                Название кластера
+                <input
+                  type="text"
+                  name="cluster_name"
+                  value="{{ cluster_name or 'heritage-prod' }}"
+                  placeholder="heritage-prod"
+                  required
+                />
+              </label>
+
+              <label>
+                Runtime
+                <select name="container_manager">
+                  <option value="containerd" selected>containerd (Recommended)</option>
+                  <option value="docker">docker</option>
+                </select>
+              </label>
+
+              <label>
+                Network plugin
+                <select name="network_plugin">
+                  <option value="cilium" selected>cilium (Recommended)</option>
+                  <option value="calico">calico</option>
+                </select>
+              </label>
+
+              <label>
+                Storage
+                <select name="storage_enabled">
+                  <option value="true" selected>with storage</option>
+                  <option value="false">without storage</option>
+                </select>
+              </label>
+
+              <label>
+                Argo CD
+                <select name="argocd_enabled">
+                  <option value="true" selected>deploy Argo CD</option>
+                  <option value="false">skip Argo CD</option>
+                </select>
+              </label>
+
+              <label>
+                Ansible user
+                <input type="text" name="ansible_user" value="ec2-user" required />
+              </label>
+
+              <label>
+                SSH private key
+                <input
+                  type="text"
+                  name="ansible_ssh_private_key_file"
+                  value="~/.ssh/id_rsa"
+                  required
+                />
+              </label>
+
+              <label class="checkbox">
+                <input type="checkbox" name="ansible_become" checked />
+                <span>Use sudo (ansible_become)</span>
+              </label>
+            </div>
+
+            <div class="preset-panel">
+              <label>
+                Готовый пример
+                <select id="preset-select">
+                  <option value="">Выберите пресет...</option>
+                  <option value="aws-dev">AWS Dev: 1 master + 2 workers</option>
+                  <option value="aws-ha">AWS HA: 3 masters + 3 workers</option>
+                  <option value="all-in-one">All-in-one: 1 node lab</option>
+                </select>
+              </label>
+              <button type="button" id="apply-preset" class="btn btn-ghost">
+                Применить пример
+              </button>
+            </div>
+
+            <h3>Хосты</h3>
+            <p class="muted">
+              Профиль роли:
+              <code>control_plane_etcd</code>, <code>worker</code>,
+              <code>control_plane</code>, <code>etcd</code>, <code>all</code>.
+            </p>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Ansible Host</th>
+                    <th>Private IP</th>
+                    <th>Role Profile</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="hosts-body"></tbody>
+              </table>
+            </div>
+
+            <div class="actions">
+              <button type="button" id="add-host" class="btn btn-ghost">+ Add host</button>
+              <button type="submit" id="deploy-btn" class="btn btn-primary">
+                Раскатить кластер
+              </button>
+            </div>
+          </form>
+        </article>
+
+        <article class="card reveal">
+          <h2>Статус запуска</h2>
+          <div class="run-meta">
+            <span id="run-status" class="badge">idle</span>
+            <span id="run-cluster">{{ cluster_name }}</span>
+          </div>
+          <pre id="run-log" class="log-box">Журнал запуска появится здесь...</pre>
+        </article>
+      </section>
+    </main>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+---
+- name: "Подготовка всех узлов RHEL 9 под Kubernetes"
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+  roles:
+    - role: common
+      tags:
+        - "baseline"
+        - "packages"
+        - "user"
+    - role: k8s_prereqs
+      tags:
+        - "k8s"
+        - "system"
+        - "containers"
+        - "network"
+        - "storage"
+
+- name: "Дополнительная настройка master + infra"
+  hosts: master
+  become: true
+  gather_facts: true
+  roles:
+    - role: master_extra
+      tags:
+        - "master"
+        - "python311"
+        - "infra"

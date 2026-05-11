@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.retry
+*.log
+artifacts/
+ui/runs/*.log
+ui/runs/*.json
+!ui/runs/.gitkeep
+
+# Do not commit generated or sensitive inventory credentials
+inventory/*/credentials/*
+!inventory/*/credentials/.gitkeep
+inventory/*/artifacts/*

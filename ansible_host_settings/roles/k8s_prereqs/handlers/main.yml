@@ -1,0 +1,21 @@
+---
+- name: "Применить sysctl"
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+
+- name: "Перезапустить containerd"
+  ansible.builtin.systemd:
+    name: containerd
+    state: restarted
+    daemon_reload: true
+
+- name: "Перезапустить kubelet"
+  ansible.builtin.systemd:
+    name: kubelet
+    state: restarted
+    daemon_reload: true
+
+- name: "Перезапустить journald"
+  ansible.builtin.systemd:
+    name: systemd-journald
+    state: restarted

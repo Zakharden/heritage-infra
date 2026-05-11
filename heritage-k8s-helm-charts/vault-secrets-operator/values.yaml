@@ -1,0 +1,3 @@
+vault-secrets-operator:
+  controller:
+    replicas: 1

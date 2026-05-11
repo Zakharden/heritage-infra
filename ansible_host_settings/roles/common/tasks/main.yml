@@ -1,0 +1,99 @@
+---
+- name: "Проверить семейство ОС"
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "RedHat"
+    fail_msg: "Плейбук поддерживает только RHEL-совместимые системы."
+  tags:
+    - "baseline"
+    - "checks"
+
+- name: "Обновить кэш пакетов DNF"
+  ansible.builtin.dnf:
+    update_cache: true
+  changed_when: false
+  tags:
+    - "baseline"
+    - "packages"
+
+- name: "Установить базовые пакеты"
+  ansible.builtin.dnf:
+    name: "{{ common_packages }}"
+    state: present
+  tags:
+    - "baseline"
+    - "packages"
+
+- name: "Настроить часовой пояс"
+  ansible.builtin.command: "timedatectl set-timezone {{ timezone_name }}"
+  when: ansible_date_time.tz != timezone_name
+  tags:
+    - "baseline"
+    - "time"
+
+- name: "Включить и запустить chronyd"
+  ansible.builtin.systemd:
+    name: chronyd
+    enabled: true
+    state: started
+  tags:
+    - "baseline"
+    - "time"
+
+- name: "Создать пользователя viewer без sudo-прав"
+  ansible.builtin.user:
+    name: "{{ viewer_user }}"
+    shell: "{{ viewer_shell }}"
+    create_home: "{{ viewer_create_home }}"
+    password_lock: "{{ viewer_password_lock }}"
+    groups: ""
+    append: false
+    state: present
+  tags:
+    - "baseline"
+    - "user"
+
+- name: "Удалить sudoers-файл пользователя viewer (если был создан ранее)"
+  ansible.builtin.file:
+    path: "/etc/sudoers.d/{{ viewer_user }}"
+    state: absent
+  tags:
+    - "baseline"
+    - "user"
+    - "security"
+
+- name: "Убедиться, что viewer не состоит в группе wheel"
+  ansible.builtin.command: "gpasswd -d {{ viewer_user }} wheel"
+  register: viewer_wheel_remove
+  failed_when: false
+  changed_when: false
+  tags:
+    - "baseline"
+    - "user"
+    - "security"
+
+- name: "Создать .ssh для viewer (опционально)"
+  ansible.builtin.file:
+    path: "/home/{{ viewer_user }}/.ssh"
+    state: directory
+    owner: "{{ viewer_user }}"
+    group: "{{ viewer_user }}"
+    mode: "0700"
+  when: viewer_ssh_public_keys | length > 0
+  tags:
+    - "baseline"
+    - "user"
+
+- name: "Добавить SSH-ключи viewer (опционально)"
+  ansible.builtin.lineinfile:
+    path: "/home/{{ viewer_user }}/.ssh/authorized_keys"
+    create: true
+    line: "{{ item }}"
+    owner: "{{ viewer_user }}"
+    group: "{{ viewer_user }}"
+    mode: "0600"
+  loop: "{{ viewer_ssh_public_keys }}"
+  when: viewer_ssh_public_keys | length > 0
+  tags:
+    - "baseline"
+    - "user"

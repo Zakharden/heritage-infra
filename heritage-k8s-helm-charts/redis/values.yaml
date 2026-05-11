@@ -1,0 +1,29 @@
+global:
+  # See `../postgres/values.yaml` for the rationale.
+  imageRegistry: public.ecr.aws
+  security:
+    allowInsecureImages: true
+
+redis:
+  architecture: standalone
+
+  auth:
+    enabled: true
+    existingSecret: heritage-redis-auth
+    existingSecretPasswordKey: redis-password
+
+  master:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    persistence:
+      enabled: true
+      storageClass: local-path
+      size: 2Gi
+
+  replica:
+    replicaCount: 0

@@ -1,0 +1,9 @@
+dependencies:
+- name: gitlab-runner
+  repository: file://_vendor
+  version: 0.85.0
+- name: gitlab-runner
+  repository: file://_vendor
+  version: 0.85.0
+digest: sha256:c99329b7ad1fa2fd7e8693ff24efff87d3290f92d16f84cda02b783762fda0ab
+generated: "2026-02-19T21:00:42.084920943Z"
