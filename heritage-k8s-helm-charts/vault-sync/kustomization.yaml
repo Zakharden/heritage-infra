@@ -4,7 +4,6 @@ resources:
   - serviceaccount-vso-auth.yaml
   - serviceaccount-vault-bootstrap.yaml
   - clusterrolebinding-vault-bootstrap-auth-delegator.yaml
-  - secret-vault-root-token.yaml
   - configmap-vault-bootstrap-script.yaml
   - job-vault-bootstrap.yaml
   - vault-connection.yaml

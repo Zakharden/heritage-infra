@@ -5,6 +5,7 @@ vault:
   server:
     dev:
       enabled: true
+      # Local lab only. Override with a throwaway token outside Git.
       devRootToken: REPLACE_ME
     standalone:
       enabled: false

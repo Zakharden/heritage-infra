@@ -47,9 +47,14 @@ Wrapper-чарты `postgres/` и `redis/` зависят от Bitnami charts. �
 
 - деплой `hashicorp/vault` в namespace `vault`
 - режим: `dev` (lab/demo)
-- root token задается в:
-  - `vault/values.yaml`
-  - `vault-sync/secret-vault-root-token.yaml`
+- root token не хранится в Git. Создайте Secret перед запуском bootstrap:
+
+```bash
+kubectl -n data create secret generic vault-root-token \
+  --from-literal=token="$VAULT_TOKEN"
+```
+
+Шаблон для локальной лабораторной среды: `vault-sync/secret-vault-root-token.example.yaml`.
 
 ### Vault Secrets Operator
 
